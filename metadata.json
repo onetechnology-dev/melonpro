@@ -1,0 +1,6 @@
+{
+  "name": "MelonPro - Melon Crop Calendar & Farm Management",
+  "description": "Bilingual (English & Khmer) smart farm management and melon crop calendar application featuring stage tracking, task scheduling, interactive field maps, and yield analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
