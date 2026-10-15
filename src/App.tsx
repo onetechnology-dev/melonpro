@@ -191,68 +191,90 @@ const MainAppContent: React.FC = () => {
         initialDate={targetDateForNewTask}
       />
 
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200 py-2 px-4 flex items-center justify-around z-40 md:hidden shadow-lg">
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex flex-col items-center gap-1 p-1 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'dashboard' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span>{language === 'km' ? 'ផ្ទាំងគ្រប់គ្រង' : 'Dashboard'}</span>
-        </motion.button>
+      {/* Mobile Bottom Navigation Bar - Perfectly Symmetrical 5-Column Grid */}
+      <nav 
+        aria-label="Mobile Navigation"
+        className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 z-40 md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.06)] px-2 pt-1.5 pb-2"
+      >
+        <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto relative">
+          {/* 1. Dashboard */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setActiveTab('dashboard')}
+            className={`w-full flex flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+              activeTab === 'dashboard' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="truncate max-w-full text-[10px] leading-tight">
+              {language === 'km' ? 'ផ្ទាំងគ្រប់គ្រង' : 'Dashboard'}
+            </span>
+          </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setActiveTab('calendar')}
-          className={`flex flex-col items-center gap-1 p-1 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'calendar' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <CalendarDays className="w-5 h-5" />
-          <span>{language === 'km' ? 'ប្រតិទិន' : 'Calendar'}</span>
-        </motion.button>
+          {/* 2. Calendar */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setActiveTab('calendar')}
+            className={`w-full flex flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+              activeTab === 'calendar' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <CalendarDays className="w-5 h-5" />
+            <span className="truncate max-w-full text-[10px] leading-tight">
+              {language === 'km' ? 'ប្រតិទិន' : 'Calendar'}
+            </span>
+          </motion.button>
 
-        {/* Central Add Task Button */}
-        <motion.button
-          whileHover={{ scale: 1.15, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          onClick={() => handleOpenTaskModal()}
-          className="w-12 h-12 -mt-5 rounded-full bg-[#164e22] text-white flex items-center justify-center shadow-lg hover:bg-[#123e1b] ring-4 ring-[#F8FAF7] cursor-pointer"
-          aria-label="Add Task"
-        >
-          <Plus className="w-6 h-6" />
-        </motion.button>
+          {/* 3. Central Add Task Button - Geometrically Centered */}
+          <div className="w-full flex flex-col items-center justify-center relative">
+            <motion.button
+              whileHover={{ scale: 1.12 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              onClick={() => handleOpenTaskModal()}
+              className="w-12 h-12 -mt-6 rounded-full bg-[#164e22] hover:bg-[#123e1b] text-white flex items-center justify-center shadow-lg shadow-emerald-950/25 ring-4 ring-white cursor-pointer transition-colors"
+              aria-label={language === 'km' ? 'បន្ថែមការងារថ្មី' : 'Add Task'}
+            >
+              <Plus className="w-6 h-6 stroke-[2.5]" />
+            </motion.button>
+            <span className="text-[10px] font-bold text-slate-500 mt-0.5 leading-tight text-center truncate max-w-full">
+              {language === 'km' ? 'ថែមការងារ' : 'Add Task'}
+            </span>
+          </div>
 
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setActiveTab('field')}
-          className={`flex flex-col items-center gap-1 p-1 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'field' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <MapPin className="w-5 h-5" />
-          <span>{language === 'km' ? 'ផែនទី' : 'Field'}</span>
-        </motion.button>
+          {/* 4. Field Map */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setActiveTab('field')}
+            className={`w-full flex flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+              activeTab === 'field' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <MapPin className="w-5 h-5" />
+            <span className="truncate max-w-full text-[10px] leading-tight">
+              {language === 'km' ? 'ផែនទី' : 'Field'}
+            </span>
+          </motion.button>
 
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setActiveTab('tasks')}
-          className={`flex flex-col items-center gap-1 p-1 text-xs font-bold transition-colors cursor-pointer ${
-            activeTab === 'tasks' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <CheckSquare className="w-5 h-5" />
-          <span>{language === 'km' ? 'កិច្ចការ' : 'Tasks'}</span>
-        </motion.button>
-      </div>
+          {/* 5. Tasks */}
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setActiveTab('tasks')}
+            className={`w-full flex flex-col items-center justify-center gap-0.5 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+              activeTab === 'tasks' ? 'text-emerald-800' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <CheckSquare className="w-5 h-5" />
+            <span className="truncate max-w-full text-[10px] leading-tight">
+              {language === 'km' ? 'កិច្ចការ' : 'Tasks'}
+            </span>
+          </motion.button>
+        </div>
+      </nav>
     </div>
   );
 };
