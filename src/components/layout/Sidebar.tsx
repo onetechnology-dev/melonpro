@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -16,17 +16,20 @@ import {
   BadgePercent,
   Users,
   Store,
-  Building2,
-  Wallet,
-  Warehouse,
-  ReceiptText,
-  X,
-  Sprout
+  Building2, 
+  Wallet, 
+  Warehouse, 
+  ReceiptText, 
+  X, 
+  Sprout,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { useI18n } from '../../locales/i18nContext';
 import { useFarm, NavigationTab } from '../../context/FarmContext';
 import { useAuth } from '../../context/AuthContext';
 import { useMapSettings } from '../../context/MapSettingsContext';
+import { AddNewCropModal } from '../common/AddNewCropModal';
 import { MelonLogo, SidebarGreenhouseBanner } from '../common/MelonIllustrations';
 import { motion } from 'motion/react';
 import { ShieldCheck } from 'lucide-react';
@@ -49,10 +52,47 @@ interface NavGroup {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMobile }) => {
-  const { t, language } = useI18n();
-  const { activeTab, setActiveTab } = useFarm();
+  const { t, language, setLanguage } = useI18n();
+  const { 
+    activeTab, 
+    setActiveTab,
+    farms,
+    selectedFarmId,
+    setSelectedFarmId,
+    plots,
+    selectedPlotId,
+    setSelectedPlotId,
+    cropCycles
+  } = useFarm();
   const { canView } = useAuth();
   const { projectName, footTag } = useMapSettings();
+
+  const [showAddCropModal, setShowAddCropModal] = useState(false);
+  const [showMobileFarmDropdown, setShowMobileFarmDropdown] = useState(false);
+  const [showMobilePlotDropdown, setShowMobilePlotDropdown] = useState(false);
+
+  const currentFarm = farms.find((f) => f.id === selectedFarmId);
+  const visiblePlots = selectedFarmId === 'all' 
+    ? plots 
+    : plots.filter((p) => p.farmId === selectedFarmId);
+  const currentPlot = plots.find((p) => p.id === selectedPlotId);
+
+  const handleSelectFarm = (farmId: string) => {
+    setSelectedFarmId(farmId);
+    setShowMobileFarmDropdown(false);
+    if (farmId !== 'all') {
+      const plotsInFarm = plots.filter((p) => p.farmId === farmId);
+      const isPlotInFarm = plotsInFarm.some((p) => p.id === selectedPlotId);
+      if (!isPlotInFarm && selectedPlotId !== 'all') {
+        setSelectedPlotId(plotsInFarm.length > 0 ? plotsInFarm[0].id : 'all');
+      }
+    }
+  };
+
+  const isAllPlots = selectedPlotId === 'all';
+  const hasActiveCrop = isAllPlots
+    ? cropCycles.some((c) => c.status === 'active')
+    : cropCycles.some((c) => c.plotId === selectedPlotId && c.status === 'active');
 
   const navGroups: NavGroup[] = [
     {
@@ -122,7 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
 
       <aside className={`
         fixed md:static inset-y-0 left-0 z-50
-        w-60 lg:w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between
+        w-72 sm:w-80 md:w-60 lg:w-64 bg-white border-r border-slate-200/80 flex flex-col justify-between
         transform transition-transform duration-200 ease-in-out shrink-0
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
@@ -152,12 +192,171 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={onCloseMobile}
-              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 md:hidden"
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 md:hidden cursor-pointer"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
             </motion.button>
           )}
+        </div>
+
+        {/* Mobile Nav Menu: Action Buttons moved from header (md:hidden) */}
+        <div className="md:hidden px-3 pt-3 pb-3 border-b border-slate-100 space-y-2.5 bg-slate-50/60">
+          {/* 1. Add Planting Button */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              setShowAddCropModal(true);
+              if (onCloseMobile) onCloseMobile();
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#164e22] hover:bg-[#123e1b] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer"
+            title="Add Planting / ដាំដំណាំថ្មី"
+          >
+            <Sprout className="w-4 h-4 text-emerald-300" />
+            <span>{language === 'km' ? 'ដាំដំណាំថ្មី (Add Planting)' : 'Add Planting'}</span>
+          </motion.button>
+
+          {/* 2. Select Farm Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowMobileFarmDropdown(!showMobileFarmDropdown);
+                setShowMobilePlotDropdown(false);
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-colors shadow-2xs cursor-pointer"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span className="truncate">
+                  {selectedFarmId === 'all'
+                    ? (language === 'km' ? 'គ្រប់កសិដ្ឋាន' : 'All Farms')
+                    : (currentFarm ? (language === 'km' && currentFarm.nameKm ? currentFarm.nameKm : currentFarm.name) : (language === 'km' ? 'ជ្រើសរើសកសិដ្ឋាន' : 'Select Farm'))}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+            </button>
+
+            {showMobileFarmDropdown && (
+              <div className="mt-1 w-full bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 max-h-48 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => handleSelectFarm('all')}
+                  className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                    selectedFarmId === 'all' ? 'text-emerald-700 font-bold bg-emerald-50/70' : 'text-slate-700'
+                  }`}
+                >
+                  <span className="font-semibold">{language === 'km' ? '✨ គ្រប់កសិដ្ឋាន (All Farms)' : '✨ All Farms'}</span>
+                  {selectedFarmId === 'all' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                </button>
+                {farms.map((farm) => {
+                  const isSelected = selectedFarmId === farm.id;
+                  return (
+                    <button
+                      key={farm.id}
+                      type="button"
+                      onClick={() => handleSelectFarm(farm.id)}
+                      className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                        isSelected ? 'text-emerald-700 font-bold bg-emerald-50/70' : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="font-semibold truncate">
+                        {language === 'km' && farm.nameKm ? farm.nameKm : farm.name}
+                      </span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Select Target Plot Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => {
+                setShowMobilePlotDropdown(!showMobilePlotDropdown);
+                setShowMobileFarmDropdown(false);
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition-colors shadow-2xs cursor-pointer"
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className={`w-2 h-2 rounded-full shrink-0 ${hasActiveCrop ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                <span className="truncate">
+                  {selectedPlotId === 'all'
+                    ? (language === 'km' ? 'គ្រប់រងដាំ (All Plots)' : 'All Plots')
+                    : (currentPlot ? (language === 'km' ? currentPlot.name.replace('Plot', 'រង') : currentPlot.name) : (language === 'km' ? 'ជ្រើសរើសរងដាំ' : 'Select Plot'))}
+                </span>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+            </button>
+
+            {showMobilePlotDropdown && (
+              <div className="mt-1 w-full bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30 max-h-48 overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlotId('all');
+                    setShowMobilePlotDropdown(false);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                    selectedPlotId === 'all' ? 'text-emerald-700 font-bold bg-emerald-50/70' : 'text-slate-700'
+                  }`}
+                >
+                  <span className="font-semibold">{language === 'km' ? 'គ្រប់រងដាំ (All Plots)' : 'All Plots'}</span>
+                  {selectedPlotId === 'all' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                </button>
+                {visiblePlots.map((plot) => {
+                  const isSelected = selectedPlotId === plot.id;
+                  return (
+                    <button
+                      key={plot.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlotId(plot.id);
+                        setShowMobilePlotDropdown(false);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                        isSelected ? 'text-emerald-700 font-bold bg-emerald-50/70' : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="font-semibold truncate">{plot.name} ({plot.code})</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 4. Language Switcher (English | ខ្មែរ) */}
+          <div className="flex items-center bg-slate-200/70 p-1 rounded-xl text-xs font-bold border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setLanguage('en')}
+              className={`flex-1 py-1 rounded-lg transition-all text-center cursor-pointer ${
+                language === 'en'
+                  ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              English
+            </button>
+            <span className="text-slate-300 text-xs px-0.5 select-none">|</span>
+            <button
+              type="button"
+              onClick={() => setLanguage('km')}
+              className={`flex-1 py-1 rounded-lg transition-all font-khmer text-center cursor-pointer ${
+                language === 'km'
+                  ? 'bg-white text-emerald-800 shadow-xs font-extrabold'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              ខ្មែរ
+            </button>
+          </div>
         </div>
 
         {/* Navigation list with grouped sections and compact proportion */}
@@ -230,6 +429,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           </div>
         </div>
       </aside>
+
+      {/* Add New Crop Modal for Mobile Nav Menu */}
+      <AddNewCropModal
+        isOpen={showAddCropModal}
+        onClose={() => setShowAddCropModal(false)}
+      />
     </>
   );
 };

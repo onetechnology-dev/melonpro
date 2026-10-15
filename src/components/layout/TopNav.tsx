@@ -102,8 +102,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenMobileMenu }) => {
             <span className="font-bold text-base text-[#164e22] tracking-tight">{projectName}</span>
           </div>
 
-          {/* Selector 1: Select Farm Dropdown */}
-          <div className="relative" ref={farmRef}>
+          {/* Selector 1: Select Farm Dropdown (Hidden on mobile, moved to Nav menu) */}
+          <div className="hidden md:block relative" ref={farmRef}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -171,8 +171,8 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenMobileMenu }) => {
             )}
           </div>
 
-          {/* Selector 2: ជ្រើសរើសរងដាំ (Select Plot) Dropdown based on selected farm */}
-          <div className="relative" ref={plotRef}>
+          {/* Selector 2: ជ្រើសរើសរងដាំ (Select Plot) Dropdown based on selected farm (Hidden on mobile, moved to Nav menu) */}
+          <div className="hidden md:block relative" ref={plotRef}>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -308,9 +308,9 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenMobileMenu }) => {
           </div>
         </div>
 
-        {/* Center: Global Search Bar */}
-        <div className="flex-1 max-w-md mx-2 sm:mx-6">
-          <div className="relative">
+        {/* Center: Global Search Bar (Hidden on mobile, moved above Dashboard on mobile screen) */}
+        <div className="hidden md:flex flex-1 max-w-md mx-2 sm:mx-6">
+          <div className="relative w-full">
             <Search className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -322,14 +322,14 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenMobileMenu }) => {
           </div>
         </div>
 
-        {/* Right: Add Crop, Language Switch, Notifications, Farmer Profile */}
+        {/* Right: Notifications & User profile (Add Crop & Language switch hidden on mobile, moved to Nav menu) */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Action: Add New Crop Button with micro-animation */}
+          {/* Quick Action: Add New Crop Button with micro-animation (Hidden on mobile) */}
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowAddCropModal(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-[#164e22] hover:bg-[#123e1b] text-white rounded-xl text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer"
+            className="hidden md:flex items-center gap-2 px-3.5 py-2 bg-[#164e22] hover:bg-[#123e1b] text-white rounded-xl text-sm font-bold shadow-xs hover:shadow transition-all cursor-pointer"
             title="Add Planting / ដាំដំណាំថ្មី"
           >
             <motion.div
@@ -338,12 +338,11 @@ export const TopNav: React.FC<TopNavProps> = ({ onOpenMobileMenu }) => {
             >
               <Sprout className="w-4 h-4" />
             </motion.div>
-            <span className="hidden sm:inline">{language === 'km' ? 'ដាំដំណាំថ្មី' : 'Add Planting'}</span>
-            <span className="sm:hidden text-xs">Add Planting</span>
+            <span>{language === 'km' ? 'ដាំដំណាំថ្មី' : 'Add Planting'}</span>
           </motion.button>
 
-          {/* Language Switch matching reference: English | ខ្មែរ */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-full text-sm font-bold border border-slate-200/70">
+          {/* Language Switch (Hidden on mobile, moved to Nav menu) */}
+          <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-full text-sm font-bold border border-slate-200/70">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
