@@ -10,37 +10,82 @@ import {
 } from 'lucide-react';
 import { useI18n } from '../../locales/i18nContext';
 import { useFarm } from '../../context/FarmContext';
+import { FacilityShape } from '../../types/melon';
 import { GreenhouseModeCard } from './GreenhouseModeCard';
 
 export const StatusGridCards: React.FC = () => {
   const { language } = useI18n();
-  const { plots, selectedPlotId, setSelectedPlotId, currentPlot, cropCycles, customStages } = useFarm();
+  const { 
+    plots, 
+    selectedPlotId, 
+    setSelectedPlotId, 
+    currentPlot, 
+    cropCycles, 
+    customStages,
+    selectedFacilityId,
+    setSelectedFacilityId 
+  } = useFarm();
 
-  const { netHousePlots, openFieldPlots, otherPlots } = React.useMemo(() => {
-    const netHouses: typeof plots = [];
-    const openFields: typeof plots = [];
-    const others: typeof plots = [];
+  // Extract facilities based on the current plot (or all plots if all is selected)
+  const availableFacilities = React.useMemo(() => {
+    const targetPlots = selectedPlotId === 'all' 
+      ? plots 
+      : (currentPlot ? [currentPlot] : plots);
 
-    plots.forEach((p) => {
-      const shapes = p.shapes || [];
-      const types = shapes.length > 0
-        ? shapes.map((s) => s.facilityType)
-        : (p.facilityTypes || [p.facilityType]);
+    const list: {
+      shape: FacilityShape;
+      plotId: string;
+      plotName: string;
+      plotCode: string;
+    }[] = [];
 
-      const isNet = types.includes('net_house') || p.facilityType === 'net_house';
-      const isOpen = types.includes('open_field') || p.facilityType === 'open_field';
+    targetPlots.forEach((p) => {
+      const shapes = p.shapes && p.shapes.length > 0
+        ? p.shapes
+        : [
+            {
+              id: `shape-${p.id}-default`,
+              name: p.name,
+              facilityType: p.facilityType || 'net_house',
+              coords: p.polygonCoords || [],
+              areaM2: p.areaM2 || (p.areaHa === 0.4 ? 400 : Math.round((p.areaHa || 0) * 10000)),
+              areaHa: p.areaHa || 0.04,
+              plantCount: p.plantCount || 0,
+            } as FacilityShape,
+          ];
 
-      if (isNet) {
-        netHouses.push(p);
-      } else if (isOpen) {
-        openFields.push(p);
-      } else {
-        others.push(p);
-      }
+      shapes.forEach((s) => {
+        list.push({
+          shape: s,
+          plotId: p.id,
+          plotName: p.name,
+          plotCode: p.code,
+        });
+      });
     });
 
-    return { netHousePlots: netHouses, openFieldPlots: openFields, otherPlots: others };
-  }, [plots]);
+    return list;
+  }, [selectedPlotId, currentPlot, plots]);
+
+  const netHouseFacilities = React.useMemo(() => 
+    availableFacilities.filter((f) => f.shape.facilityType === 'net_house'),
+    [availableFacilities]
+  );
+
+  const openFieldFacilities = React.useMemo(() => 
+    availableFacilities.filter((f) => f.shape.facilityType === 'open_field'),
+    [availableFacilities]
+  );
+
+  const otherFacilities = React.useMemo(() => 
+    availableFacilities.filter((f) => f.shape.facilityType !== 'net_house' && f.shape.facilityType !== 'open_field'),
+    [availableFacilities]
+  );
+
+  const activeFacilityItem = React.useMemo(() => {
+    if (selectedFacilityId === 'all') return null;
+    return availableFacilities.find((f) => f.shape.id === selectedFacilityId) || null;
+  }, [selectedFacilityId, availableFacilities]);
 
   const isAllPlots = selectedPlotId === 'all';
   const relevantCycles = React.useMemo(() => {
@@ -112,33 +157,43 @@ export const StatusGridCards: React.FC = () => {
     return { daysToHarvest: null, harvestDateStr: '' };
   }, [hasActiveCrop, currentCycle]);
 
-  const { areaM2Display, areaHaDisplay } = React.useMemo(() => {
-    if (isAllPlots) {
-      const totalM2 = plots.reduce((sum, p) => {
-        const m2 = p.areaM2 !== undefined && p.areaM2 > 0
-          ? p.areaM2
-          : (p.areaHa === 0.4 ? 400 : Math.round((p.areaHa || 0) * 10000));
-        return sum + m2;
-      }, 0);
-      const totalHa = plots.reduce((sum, p) => sum + (p.areaHa || 0), 0);
+  const { areaM2Display, areaHaDisplay, activeFacilityBadge } = React.useMemo(() => {
+    if (activeFacilityItem) {
+      const s = activeFacilityItem.shape;
+      const ha = s.areaHa ?? 0;
+      const m2 = s.areaM2 !== undefined && s.areaM2 > 0
+        ? s.areaM2
+        : (ha === 0.04 || ha === 0.4 ? 400 : Math.round(ha * 10000));
+
+      const badge = s.facilityType === 'net_house'
+        ? (language === 'km' ? 'ផ្ទះសំណាញ់' : 'Net House')
+        : (language === 'km' ? 'ចំការវាល' : 'Open Field');
+
       return {
-        areaM2Display: totalM2 > 0 ? totalM2.toLocaleString() : '—',
-        areaHaDisplay: totalHa > 0 ? String(Number(totalHa.toFixed(2))) : '—',
+        areaM2Display: m2 > 0 ? m2.toLocaleString() : '—',
+        areaHaDisplay: ha > 0 ? String(Number(ha.toFixed(2))) : '—',
+        activeFacilityBadge: badge,
       };
     }
-    if (!currentPlot) {
-      return { areaM2Display: '—', areaHaDisplay: '—' };
-    }
-    const ha = currentPlot.areaHa ?? 0;
-    const m2 = currentPlot.areaM2 !== undefined && currentPlot.areaM2 > 0
-      ? currentPlot.areaM2
-      : (ha === 0.4 ? 400 : Math.round(ha * 10000));
+
+    // When 'all' facilities in the current plot (or all plots) are selected:
+    const totalM2 = availableFacilities.reduce((sum, f) => {
+      const s = f.shape;
+      const m2 = s.areaM2 !== undefined && s.areaM2 > 0
+        ? s.areaM2
+        : (s.areaHa === 0.04 || s.areaHa === 0.4 ? 400 : Math.round((s.areaHa || 0) * 10000));
+      return sum + m2;
+    }, 0);
+
+    const totalHa = availableFacilities.reduce((sum, f) => sum + (f.shape.areaHa || 0), 0);
+    const badge = `${availableFacilities.length} ${language === 'km' ? 'រោង/កន្លែង' : 'Facilities'}`;
 
     return {
-      areaM2Display: m2 > 0 ? m2.toLocaleString() : '—',
-      areaHaDisplay: ha > 0 ? String(Number(ha.toFixed(2))) : '—',
+      areaM2Display: totalM2 > 0 ? totalM2.toLocaleString() : '—',
+      areaHaDisplay: totalHa > 0 ? String(Number(totalHa.toFixed(2))) : '—',
+      activeFacilityBadge: badge,
     };
-  }, [isAllPlots, plots, currentPlot]);
+  }, [activeFacilityItem, availableFacilities, language]);
 
   const { estimatedYieldKg, estimatedYieldTons, yieldContextText } = React.useMemo(() => {
     if (!hasActiveCrop) {
@@ -173,7 +228,7 @@ export const StatusGridCards: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-3.5 items-stretch">
-      {/* 1. Field Selector Card (Net House & Open Field with Select All) */}
+      {/* 1. Facility Selector Card based on each Plot */}
       <div className="lg:col-span-2 bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/90 flex flex-col justify-between hover:shadow-xs transition-shadow">
         <div className="flex items-center gap-2.5">
           <motion.div 
@@ -187,63 +242,51 @@ export const StatusGridCards: React.FC = () => {
           </motion.div>
           <div className="min-w-0 flex-1">
             <span className="text-sm font-extrabold text-slate-800 block truncate">
-              Select Field
+              {language === 'km' ? 'ជ្រើសរើស Facility' : 'Select Facility'}
             </span>
             <span className="text-xs text-slate-400 font-khmer block truncate">
-              {language === 'km' ? 'ជ្រើសរើស Field' : 'Net House & Open Field'}
+              {currentPlot 
+                ? (language === 'km' ? `រោងក្នុង ${currentPlot.name}` : `In ${currentPlot.name}`) 
+                : (language === 'km' ? 'គ្រប់រោងដាំទាំងអស់' : 'All Facilities')}
             </span>
             <div className="relative mt-1">
               <select
-                value={selectedPlotId}
-                onChange={(e) => setSelectedPlotId(e.target.value)}
+                value={selectedFacilityId}
+                onChange={(e) => setSelectedFacilityId(e.target.value)}
                 className="w-full appearance-none bg-slate-50 border border-slate-200/80 hover:border-slate-300 rounded-lg px-2 py-1 font-bold text-xs text-slate-900 focus:outline-none pr-6 cursor-pointer truncate transition-colors"
               >
                 <option value="all">
-                  {language === 'km' ? '✨ ជ្រើសរើសទាំងអស់ (Select All)' : '✨ Select All'}
+                  {language === 'km' ? `✨ ជ្រើសរើសទាំងអស់ (${availableFacilities.length} រោង)` : `✨ Select All (${availableFacilities.length} Facilities)`}
                 </option>
-                {netHousePlots.length > 0 && (
-                  <optgroup label={language === 'km' ? '🏠 ផ្ទះសំណាញ់ (Net House)' : '🏠 Net Houses'}>
-                    {netHousePlots.map((p) => {
-                      const pCycles = cropCycles.filter((c) => c.plotId === p.id);
-                      const pActive = pCycles.some((c) => c.status === 'active');
-                      const pComp = pCycles.length > 0 && pCycles.every((c) => c.status === 'completed');
-                      const statusTag = pActive
-                        ? ''
-                        : pComp
-                          ? (language === 'km' ? ' (ប្រមូលផលរួច)' : ' (Completed)')
-                          : (language === 'km' ? ' (ទំនេរ)' : ' (Empty)');
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.name} {p.code ? `(${p.code})` : ''}{statusTag}
-                        </option>
-                      );
-                    })}
+
+                {netHouseFacilities.length > 0 && (
+                  <optgroup label={language === 'km' ? '🏠 ផ្ទះសំណាញ់ (Net Houses)' : '🏠 Net Houses'}>
+                    {netHouseFacilities.map(({ shape, plotName }) => (
+                      <option key={shape.id} value={shape.id}>
+                        {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
+                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
+                      </option>
+                    ))}
                   </optgroup>
                 )}
-                {openFieldPlots.length > 0 && (
-                  <optgroup label={language === 'km' ? '🌱 ចំការវាល (Open Field)' : '🌱 Open Fields'}>
-                    {openFieldPlots.map((p) => {
-                      const pCycles = cropCycles.filter((c) => c.plotId === p.id);
-                      const pActive = pCycles.some((c) => c.status === 'active');
-                      const pComp = pCycles.length > 0 && pCycles.every((c) => c.status === 'completed');
-                      const statusTag = pActive
-                        ? ''
-                        : pComp
-                          ? (language === 'km' ? ' (ប្រមូលផលរួច)' : ' (Completed)')
-                          : (language === 'km' ? ' (ទំនេរ)' : ' (Empty)');
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.name} {p.code ? `(${p.code})` : ''}{statusTag}
-                        </option>
-                      );
-                    })}
+
+                {openFieldFacilities.length > 0 && (
+                  <optgroup label={language === 'km' ? '🌱 ចំការវាល (Open Fields)' : '🌱 Open Fields'}>
+                    {openFieldFacilities.map(({ shape, plotName }) => (
+                      <option key={shape.id} value={shape.id}>
+                        {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
+                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
+                      </option>
+                    ))}
                   </optgroup>
                 )}
-                {otherPlots.length > 0 && (
-                  <optgroup label={language === 'km' ? 'រងដាំផ្សេងទៀត (Other Fields)' : 'Other Fields'}>
-                    {otherPlots.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+
+                {otherFacilities.length > 0 && (
+                  <optgroup label={language === 'km' ? 'កន្លែងផ្សេងទៀត (Other Facilities)' : 'Other Facilities'}>
+                    {otherFacilities.map(({ shape, plotName }) => (
+                      <option key={shape.id} value={shape.id}>
+                        {shape.name}
+                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
                       </option>
                     ))}
                   </optgroup>
@@ -254,28 +297,18 @@ export const StatusGridCards: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-2.5 pt-2 border-t border-slate-100">
-          {areaM2Display !== '—' ? (
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                {areaM2Display}m²
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-slate-500 font-mono">
-                ({areaHaDisplay}{language === 'km' ? 'ហិចតា' : 'ha'})
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-xl sm:text-2xl font-bold text-slate-300 font-mono tracking-tight">
-                —
-              </span>
-              <span className="text-xs font-semibold text-slate-400 font-khmer">
-                {isCropCompleted 
-                  ? (language === 'km' ? 'ប្រមូលផលរួចរាល់' : 'Harvest completed')
-                  : (language === 'km' ? 'គ្មានដំណាំដាំដុះ' : 'No crop planted')}
-              </span>
-            </div>
-          )}
+        <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
+              {areaM2Display}m²
+            </span>
+            <span className="text-xs sm:text-sm font-bold text-slate-500 font-mono">
+              ({areaHaDisplay}{language === 'km' ? 'ហិចតា' : 'ha'})
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
+            {activeFacilityBadge}
+          </span>
         </div>
       </div>
 

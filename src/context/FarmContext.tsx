@@ -76,6 +76,8 @@ interface FarmContextType {
   setActiveTab: (tab: NavigationTab) => void;
   selectedPlotId: string;
   setSelectedPlotId: (plotId: string) => void;
+  selectedFacilityId: string;
+  setSelectedFacilityId: (facilityId: string) => void;
   selectedCycleId: string;
   setSelectedCycleId: (cycleId: string) => void;
   searchQuery: string;
@@ -226,7 +228,13 @@ const FarmContext = createContext<FarmContextType | undefined>(undefined);
 
 export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
-  const [selectedPlotId, setSelectedPlotId] = useState<string>('plot-a');
+  const [selectedPlotId, setSelectedPlotIdState] = useState<string>('plot-a');
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string>('all');
+
+  const setSelectedPlotId = (plotId: string) => {
+    setSelectedPlotIdState(plotId);
+    setSelectedFacilityId('all');
+  };
   const [selectedCycleId, setSelectedCycleId] = useState<string>('cycle-2025-m2');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const currentSimulatedDate = getTodayDateString();
@@ -1434,6 +1442,8 @@ export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveTab,
         selectedPlotId,
         setSelectedPlotId,
+        selectedFacilityId,
+        setSelectedFacilityId,
         selectedCycleId,
         setSelectedCycleId,
         searchQuery,
