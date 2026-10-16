@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { 
   Sprout, 
+  Warehouse,
   Flower2, 
   CalendarClock, 
   Scale, 
@@ -14,6 +15,32 @@ import { GreenhouseModeCard } from './GreenhouseModeCard';
 export const StatusGridCards: React.FC = () => {
   const { language } = useI18n();
   const { plots, selectedPlotId, setSelectedPlotId, currentPlot, cropCycles, customStages } = useFarm();
+
+  const { netHousePlots, openFieldPlots, otherPlots } = React.useMemo(() => {
+    const netHouses: typeof plots = [];
+    const openFields: typeof plots = [];
+    const others: typeof plots = [];
+
+    plots.forEach((p) => {
+      const shapes = p.shapes || [];
+      const types = shapes.length > 0
+        ? shapes.map((s) => s.facilityType)
+        : (p.facilityTypes || [p.facilityType]);
+
+      const isNet = types.includes('net_house') || p.facilityType === 'net_house';
+      const isOpen = types.includes('open_field') || p.facilityType === 'open_field';
+
+      if (isNet) {
+        netHouses.push(p);
+      } else if (isOpen) {
+        openFields.push(p);
+      } else {
+        others.push(p);
+      }
+    });
+
+    return { netHousePlots: netHouses, openFieldPlots: openFields, otherPlots: others };
+  }, [plots]);
 
   const isAllPlots = selectedPlotId === 'all';
   const relevantCycles = React.useMemo(() => {
@@ -87,7 +114,12 @@ export const StatusGridCards: React.FC = () => {
 
   const { areaM2Display, areaHaDisplay } = React.useMemo(() => {
     if (isAllPlots) {
-      const totalM2 = plots.reduce((sum, p) => sum + (p.areaM2 || (p.areaHa ? p.areaHa * 10000 : 0)), 0);
+      const totalM2 = plots.reduce((sum, p) => {
+        const m2 = p.areaM2 !== undefined && p.areaM2 > 0
+          ? p.areaM2
+          : (p.areaHa === 0.4 ? 400 : Math.round((p.areaHa || 0) * 10000));
+        return sum + m2;
+      }, 0);
       const totalHa = plots.reduce((sum, p) => sum + (p.areaHa || 0), 0);
       return {
         areaM2Display: totalM2 > 0 ? totalM2.toLocaleString() : '—',
@@ -141,7 +173,7 @@ export const StatusGridCards: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-3.5 items-stretch">
-      {/* 1. Plot Selector Card */}
+      {/* 1. Field Selector Card (Net House & Open Field with Select All) */}
       <div className="lg:col-span-2 bg-white rounded-2xl p-4 shadow-2xs border border-slate-200/90 flex flex-col justify-between hover:shadow-xs transition-shadow">
         <div className="flex items-center gap-2.5">
           <motion.div 
@@ -151,14 +183,14 @@ export const StatusGridCards: React.FC = () => {
               hasActiveCrop ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-400'
             }`}
           >
-            <Sprout className="w-5 h-5" />
+            <Warehouse className="w-5 h-5" />
           </motion.div>
           <div className="min-w-0 flex-1">
             <span className="text-sm font-extrabold text-slate-800 block truncate">
-              Select Target Plot
+              Select Field
             </span>
             <span className="text-xs text-slate-400 font-khmer block truncate">
-              ជ្រើសរើសរងដាំ
+              {language === 'km' ? 'ជ្រើសរើស Field' : 'Net House & Open Field'}
             </span>
             <div className="relative mt-1">
               <select
@@ -167,23 +199,55 @@ export const StatusGridCards: React.FC = () => {
                 className="w-full appearance-none bg-slate-50 border border-slate-200/80 hover:border-slate-300 rounded-lg px-2 py-1 font-bold text-xs text-slate-900 focus:outline-none pr-6 cursor-pointer truncate transition-colors"
               >
                 <option value="all">
-                  {language === 'km' ? 'ជ្រើសរើសរងដាំ (All Plots)' : 'Select Target Plot (All)'}
+                  {language === 'km' ? '✨ ជ្រើសរើសទាំងអស់ (Select All)' : '✨ Select All'}
                 </option>
-                {plots.map((p) => {
-                  const pCycles = cropCycles.filter((c) => c.plotId === p.id);
-                  const pActive = pCycles.some((c) => c.status === 'active');
-                  const pComp = pCycles.length > 0 && pCycles.every((c) => c.status === 'completed');
-                  const statusTag = pActive
-                    ? ''
-                    : pComp
-                      ? (language === 'km' ? ' (ប្រមូលផលរួច)' : ' (Completed)')
-                      : (language === 'km' ? ' (ទំនេរ)' : ' (Empty)');
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {p.name}{statusTag}
-                    </option>
-                  );
-                })}
+                {netHousePlots.length > 0 && (
+                  <optgroup label={language === 'km' ? '🏠 ផ្ទះសំណាញ់ (Net House)' : '🏠 Net Houses'}>
+                    {netHousePlots.map((p) => {
+                      const pCycles = cropCycles.filter((c) => c.plotId === p.id);
+                      const pActive = pCycles.some((c) => c.status === 'active');
+                      const pComp = pCycles.length > 0 && pCycles.every((c) => c.status === 'completed');
+                      const statusTag = pActive
+                        ? ''
+                        : pComp
+                          ? (language === 'km' ? ' (ប្រមូលផលរួច)' : ' (Completed)')
+                          : (language === 'km' ? ' (ទំនេរ)' : ' (Empty)');
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.code ? `(${p.code})` : ''}{statusTag}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                )}
+                {openFieldPlots.length > 0 && (
+                  <optgroup label={language === 'km' ? '🌱 ចំការវាល (Open Field)' : '🌱 Open Fields'}>
+                    {openFieldPlots.map((p) => {
+                      const pCycles = cropCycles.filter((c) => c.plotId === p.id);
+                      const pActive = pCycles.some((c) => c.status === 'active');
+                      const pComp = pCycles.length > 0 && pCycles.every((c) => c.status === 'completed');
+                      const statusTag = pActive
+                        ? ''
+                        : pComp
+                          ? (language === 'km' ? ' (ប្រមូលផលរួច)' : ' (Completed)')
+                          : (language === 'km' ? ' (ទំនេរ)' : ' (Empty)');
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.code ? `(${p.code})` : ''}{statusTag}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                )}
+                {otherPlots.length > 0 && (
+                  <optgroup label={language === 'km' ? 'រងដាំផ្សេងទៀត (Other Fields)' : 'Other Fields'}>
+                    {otherPlots.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -191,7 +255,7 @@ export const StatusGridCards: React.FC = () => {
         </div>
 
         <div className="mt-2.5 pt-2 border-t border-slate-100">
-          {hasActiveCrop ? (
+          {areaM2Display !== '—' ? (
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
                 {areaM2Display}m²
