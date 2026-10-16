@@ -328,18 +328,20 @@ apiRouter.post('/crop-cycles', async (req: Request, res: Response) => {
     const c = req.body;
     await execute(
       `INSERT INTO crop_cycles (
-        id, name, batchNumber, plotId, variety, sowingDate, transplantDate,
+        id, name, batchNumber, plotId, facilityId, facilityName, variety, sowingDate, transplantDate,
         harvestWindowStart, harvestWindowEnd, stages, status, targetYieldTons,
         assignedAgronomist, currentStageKey
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         name=VALUES(name), batchNumber=VALUES(batchNumber), plotId=VALUES(plotId),
+        facilityId=VALUES(facilityId), facilityName=VALUES(facilityName),
         variety=VALUES(variety), sowingDate=VALUES(sowingDate), transplantDate=VALUES(transplantDate),
         harvestWindowStart=VALUES(harvestWindowStart), harvestWindowEnd=VALUES(harvestWindowEnd),
         stages=VALUES(stages), status=VALUES(status), targetYieldTons=VALUES(targetYieldTons),
         assignedAgronomist=VALUES(assignedAgronomist), currentStageKey=VALUES(currentStageKey)`,
       [
-        c.id, c.name, c.batchNumber, c.plotId, c.variety || '', c.sowingDate || '', c.transplantDate || '',
+        c.id, c.name, c.batchNumber, c.plotId, c.facilityId || null, c.facilityName || null,
+        c.variety || '', c.sowingDate || '', c.transplantDate || '',
         c.harvestWindowStart || '', c.harvestWindowEnd || '',
         c.stages ? JSON.stringify(c.stages) : null,
         c.status || 'active', c.targetYieldTons || null, c.assignedAgronomist || null, c.currentStageKey || null
@@ -356,12 +358,13 @@ apiRouter.put('/crop-cycles/:id', async (req: Request, res: Response) => {
     const c = { ...req.body, id: req.params.id };
     await execute(
       `UPDATE crop_cycles SET
-        name=?, batchNumber=?, plotId=?, variety=?, sowingDate=?, transplantDate=?,
+        name=?, batchNumber=?, plotId=?, facilityId=?, facilityName=?, variety=?, sowingDate=?, transplantDate=?,
         harvestWindowStart=?, harvestWindowEnd=?, stages=?, status=?, targetYieldTons=?,
         assignedAgronomist=?, currentStageKey=?
       WHERE id=?`,
       [
-        c.name, c.batchNumber, c.plotId, c.variety || '', c.sowingDate || '', c.transplantDate || '',
+        c.name, c.batchNumber, c.plotId, c.facilityId || null, c.facilityName || null,
+        c.variety || '', c.sowingDate || '', c.transplantDate || '',
         c.harvestWindowStart || '', c.harvestWindowEnd || '',
         c.stages ? JSON.stringify(c.stages) : null,
         c.status || 'active', c.targetYieldTons || null, c.assignedAgronomist || null, c.currentStageKey || null,

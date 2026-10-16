@@ -27,6 +27,7 @@ export const StatusGridCards: React.FC = () => {
   } = useFarm();
 
   // Extract facilities based on the current plot (or all plots if all is selected)
+  // ONLY include facilities that currently have active crop planting
   const availableFacilities = React.useMemo(() => {
     const targetPlots = selectedPlotId === 'all' 
       ? plots 
@@ -40,6 +41,16 @@ export const StatusGridCards: React.FC = () => {
     }[] = [];
 
     targetPlots.forEach((p) => {
+      // Find all active crop cycles for this plot
+      const plotActiveCycles = cropCycles.filter(
+        (c) => c.plotId === p.id && c.status === 'active'
+      );
+
+      // If plot has no active crop cycles at all, it has no active facility plantings
+      if (plotActiveCycles.length === 0) {
+        return;
+      }
+
       const shapes = p.shapes && p.shapes.length > 0
         ? p.shapes
         : [
@@ -55,17 +66,59 @@ export const StatusGridCards: React.FC = () => {
           ];
 
       shapes.forEach((s) => {
-        list.push({
-          shape: s,
-          plotId: p.id,
-          plotName: p.name,
-          plotCode: p.code,
+        // Check if facility s has active crop planting:
+        // 1. Direct facilityId match
+        const matchingCyclesById = plotActiveCycles.filter(
+          (c) => c.facilityId && c.facilityId === s.id
+        );
+
+        // 2. Direct facilityName match
+        const sNameLower = s.name.trim().toLowerCase();
+        const matchingCyclesByName = plotActiveCycles.filter(
+          (c) => c.facilityName && c.facilityName.trim().toLowerCase() === sNameLower
+        );
+
+        // 3. Batch number or cycle name reference (e.g. "-A01" matches "CKL-A01")
+        const sAlphanumeric = s.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        const matchingCyclesByRef = plotActiveCycles.filter((c) => {
+          const bNum = (c.batchNumber || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          const cName = (c.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+          return sAlphanumeric && (bNum.includes(sAlphanumeric) || cName.includes(sAlphanumeric));
         });
+
+        const hasDirectCycle = matchingCyclesById.length > 0 || matchingCyclesByName.length > 0 || matchingCyclesByRef.length > 0;
+
+        // Determine active planting status:
+        // - Directly associated with an active cycle
+        // - Or has plants (> 0) while plot has active cycles
+        // - Or single facility plot with active cycles
+        const hasActivePlanting = hasDirectCycle ||
+          (s.plantCount !== undefined && s.plantCount > 0) ||
+          (shapes.length === 1 && plotActiveCycles.length > 0);
+
+        if (hasActivePlanting) {
+          list.push({
+            shape: s,
+            plotId: p.id,
+            plotName: p.name,
+            plotCode: p.code,
+          });
+        }
       });
     });
 
     return list;
-  }, [selectedPlotId, currentPlot, plots]);
+  }, [selectedPlotId, currentPlot, plots, cropCycles]);
+
+  // Auto-reset selectedFacilityId if current selection is not among active facilities
+  React.useEffect(() => {
+    if (selectedFacilityId !== 'all') {
+      const exists = availableFacilities.some((f) => f.shape.id === selectedFacilityId);
+      if (!exists) {
+        setSelectedFacilityId('all');
+      }
+    }
+  }, [selectedFacilityId, availableFacilities, setSelectedFacilityId]);
 
   const netHouseFacilities = React.useMemo(() => 
     availableFacilities.filter((f) => f.shape.facilityType === 'net_house'),
@@ -96,11 +149,30 @@ export const StatusGridCards: React.FC = () => {
 
   const activeCycles = React.useMemo(() => relevantCycles.filter((c) => c.status === 'active'), [relevantCycles]);
   const completedCycles = React.useMemo(() => relevantCycles.filter((c) => c.status === 'completed'), [relevantCycles]);
-  const hasActiveCrop = activeCycles.length > 0;
+
+  // When a specific facility is selected, resolve active cycle for that specific facility
+  const facilityActiveCycles = React.useMemo(() => {
+    if (!activeFacilityItem) return activeCycles;
+    const facId = activeFacilityItem.shape.id;
+    const facName = activeFacilityItem.shape.name.toLowerCase();
+    const facCode = activeFacilityItem.shape.name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+    const filtered = activeCycles.filter((c) => {
+      if (c.facilityId && c.facilityId === facId) return true;
+      if (c.facilityName && c.facilityName.toLowerCase() === facName) return true;
+      const bNum = (c.batchNumber || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      const cName = (c.name || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return facCode && (bNum.includes(facCode) || cName.includes(facCode));
+    });
+
+    return filtered.length > 0 ? filtered : activeCycles;
+  }, [activeFacilityItem, activeCycles]);
+
+  const hasActiveCrop = activeCycles.length > 0 && availableFacilities.length > 0;
   const isCropCompleted = !hasActiveCrop && relevantCycles.length > 0 && relevantCycles.every((c) => c.status === 'completed');
   const isCropEmpty = relevantCycles.length === 0;
 
-  const currentCycle = activeCycles[0] || (isCropCompleted ? completedCycles[0] : null);
+  const currentCycle = (activeFacilityItem ? facilityActiveCycles[0] : activeCycles[0]) || (isCropCompleted ? completedCycles[0] : null);
 
   const currentStageName = React.useMemo(() => {
     if (!hasActiveCrop || !currentCycle) return null;
@@ -176,7 +248,15 @@ export const StatusGridCards: React.FC = () => {
       };
     }
 
-    // When 'all' facilities in the current plot (or all plots) are selected:
+    if (availableFacilities.length === 0) {
+      return {
+        areaM2Display: '—',
+        areaHaDisplay: '—',
+        activeFacilityBadge: language === 'km' ? 'គ្មានដាំដុះ' : 'No Active Crop',
+      };
+    }
+
+    // When 'all' active facilities in the current plot (or all plots) are selected:
     const totalM2 = availableFacilities.reduce((sum, f) => {
       const s = f.shape;
       const m2 = s.areaM2 !== undefined && s.areaM2 > 0
@@ -186,7 +266,7 @@ export const StatusGridCards: React.FC = () => {
     }, 0);
 
     const totalHa = availableFacilities.reduce((sum, f) => sum + (f.shape.areaHa || 0), 0);
-    const badge = `${availableFacilities.length} ${language === 'km' ? 'រោង/កន្លែង' : 'Facilities'}`;
+    const badge = `${availableFacilities.length} ${language === 'km' ? 'រោងសកម្ម' : 'Active Fac.'}`;
 
     return {
       areaM2Display: totalM2 > 0 ? totalM2.toLocaleString() : '—',
@@ -201,13 +281,14 @@ export const StatusGridCards: React.FC = () => {
     }
 
     let totalKg = 0;
-    activeCycles.forEach((c) => {
+    const cyclesToSum = activeFacilityItem ? facilityActiveCycles : activeCycles;
+    cyclesToSum.forEach((c) => {
       if (c.targetYieldKg && c.targetYieldKg > 0) {
         totalKg += c.targetYieldKg;
       } else if (c.targetYieldTons && c.targetYieldTons > 0) {
         totalKg += Math.round(c.targetYieldTons * 1000);
       } else {
-        const plants = c.plantCount || 2800;
+        const plants = c.plantCount || (activeFacilityItem?.shape.plantCount) || 2800;
         totalKg += Math.round(plants * 1.8);
       }
     });
@@ -215,16 +296,20 @@ export const StatusGridCards: React.FC = () => {
     const tons = Number((totalKg / 1000).toFixed(2));
     const isSinglePlot = !isAllPlots && currentPlot;
 
-    const contextText = isSinglePlot
+    const contextText = activeFacilityItem
       ? (language === 'km'
-          ? `ផ្អែកលើដំណាំដាំ ${currentPlot?.name || 'រងនេះ'} (${activeCycles.length} វដ្តសកម្ម)`
-          : `Target yield for ${currentPlot?.name || 'this plot'} (${activeCycles.length} active batch)`)
+          ? `ផ្អែកលើ ${activeFacilityItem.shape.name} (${activeFacilityItem.plotName})`
+          : `Target yield for ${activeFacilityItem.shape.name} (${activeFacilityItem.plotName})`)
+      : isSinglePlot
+      ? (language === 'km'
+          ? `ផ្អែកលើដំណាំដាំ ${currentPlot?.name || 'រងនេះ'} (${availableFacilities.length} រោងសកម្ម)`
+          : `Target yield for ${currentPlot?.name || 'this plot'} (${availableFacilities.length} active fac.)`)
       : (language === 'km'
-          ? `សរុបទិន្នផលគោលដៅដំណាំដាំ (${activeCycles.length} វដ្តសកម្ម)`
-          : `Total Target Yield across planted crops (${activeCycles.length} active batches)`);
+          ? `សរុបទិន្នផលដំណាំដាំ (${availableFacilities.length} រោងសកម្ម)`
+          : `Total Target Yield across ${availableFacilities.length} active facilities`);
 
     return { estimatedYieldKg: totalKg, estimatedYieldTons: tons, yieldContextText: contextText };
-  }, [hasActiveCrop, activeCycles, isAllPlots, currentPlot, language]);
+  }, [hasActiveCrop, activeCycles, facilityActiveCycles, activeFacilityItem, isAllPlots, currentPlot, availableFacilities.length, language]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-12 gap-3.5 items-stretch">
@@ -246,50 +331,63 @@ export const StatusGridCards: React.FC = () => {
             </span>
             <span className="text-xs text-slate-400 font-khmer block truncate">
               {currentPlot 
-                ? (language === 'km' ? `រោងក្នុង ${currentPlot.name}` : `In ${currentPlot.name}`) 
-                : (language === 'km' ? 'គ្រប់រោងដាំទាំងអស់' : 'All Facilities')}
+                ? (language === 'km' ? `រោងសកម្មក្នុង ${currentPlot.name}` : `Active in ${currentPlot.name}`) 
+                : (language === 'km' ? 'គ្រប់រោងដាំដុះសកម្ម' : 'All Active Facilities')}
             </span>
             <div className="relative mt-1">
               <select
                 value={selectedFacilityId}
                 onChange={(e) => setSelectedFacilityId(e.target.value)}
-                className="w-full appearance-none bg-slate-50 border border-slate-200/80 hover:border-slate-300 rounded-lg px-2 py-1 font-bold text-xs text-slate-900 focus:outline-none pr-6 cursor-pointer truncate transition-colors"
+                disabled={availableFacilities.length === 0}
+                className="w-full appearance-none bg-slate-50 border border-slate-200/80 hover:border-slate-300 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-2 py-1 font-bold text-xs text-slate-900 focus:outline-none pr-6 cursor-pointer truncate transition-colors"
               >
-                <option value="all">
-                  {language === 'km' ? `✨ ជ្រើសរើសទាំងអស់ (${availableFacilities.length} រោង)` : `✨ Select All (${availableFacilities.length} Facilities)`}
-                </option>
+                {availableFacilities.length === 0 ? (
+                  <option value="none">
+                    {language === 'km' ? '🚫 គ្មានរោងដាំដុះសកម្ម' : '🚫 No Active Facilities'}
+                  </option>
+                ) : (
+                  <>
+                    <option value="all">
+                      {language === 'km' 
+                        ? `✨ ជ្រើសរើសទាំងអស់ (${availableFacilities.length} រោងសកម្ម)` 
+                        : `✨ Select All (${availableFacilities.length} Active ${availableFacilities.length > 1 ? 'Facilities' : 'Facility'})`}
+                    </option>
 
-                {netHouseFacilities.length > 0 && (
-                  <optgroup label={language === 'km' ? '🏠 ផ្ទះសំណាញ់ (Net Houses)' : '🏠 Net Houses'}>
-                    {netHouseFacilities.map(({ shape, plotName }) => (
-                      <option key={shape.id} value={shape.id}>
-                        {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
-                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
+                    {netHouseFacilities.length > 0 && (
+                      <optgroup label={language === 'km' ? '🏠 ផ្ទះសំណាញ់ (Net Houses)' : '🏠 Net Houses'}>
+                        {netHouseFacilities.map(({ shape, plotName }) => (
+                          <option key={shape.id} value={shape.id}>
+                            {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
+                            {shape.plantCount ? ` (${shape.plantCount.toLocaleString()} ដើម)` : ''}
+                            {selectedPlotId === 'all' ? ` [${plotName}]` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
 
-                {openFieldFacilities.length > 0 && (
-                  <optgroup label={language === 'km' ? '🌱 ចំការវាល (Open Fields)' : '🌱 Open Fields'}>
-                    {openFieldFacilities.map(({ shape, plotName }) => (
-                      <option key={shape.id} value={shape.id}>
-                        {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
-                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
+                    {openFieldFacilities.length > 0 && (
+                      <optgroup label={language === 'km' ? '🌱 ចំការវាល (Open Fields)' : '🌱 Open Fields'}>
+                        {openFieldFacilities.map(({ shape, plotName }) => (
+                          <option key={shape.id} value={shape.id}>
+                            {shape.name} · {shape.areaM2 ? `${shape.areaM2.toLocaleString()}m²` : `${shape.areaHa}ha`}
+                            {shape.plantCount ? ` (${shape.plantCount.toLocaleString()} ដើម)` : ''}
+                            {selectedPlotId === 'all' ? ` [${plotName}]` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
 
-                {otherFacilities.length > 0 && (
-                  <optgroup label={language === 'km' ? 'កន្លែងផ្សេងទៀត (Other Facilities)' : 'Other Facilities'}>
-                    {otherFacilities.map(({ shape, plotName }) => (
-                      <option key={shape.id} value={shape.id}>
-                        {shape.name}
-                        {selectedPlotId === 'all' ? ` (${plotName})` : ''}
-                      </option>
-                    ))}
-                  </optgroup>
+                    {otherFacilities.length > 0 && (
+                      <optgroup label={language === 'km' ? 'កន្លែងផ្សេងទៀត (Other Facilities)' : 'Other Facilities'}>
+                        {otherFacilities.map(({ shape, plotName }) => (
+                          <option key={shape.id} value={shape.id}>
+                            {shape.name}
+                            {selectedPlotId === 'all' ? ` [${plotName}]` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </>
                 )}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />

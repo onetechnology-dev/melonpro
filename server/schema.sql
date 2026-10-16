@@ -64,6 +64,8 @@ CREATE TABLE IF NOT EXISTS `crop_cycles` (
   `name` VARCHAR(255) NOT NULL,
   `batchNumber` VARCHAR(255) NOT NULL,
   `plotId` VARCHAR(128) NOT NULL,
+  `facilityId` VARCHAR(128) DEFAULT NULL,
+  `facilityName` VARCHAR(255) DEFAULT NULL,
   `variety` VARCHAR(255) NOT NULL DEFAULT '',
   `sowingDate` VARCHAR(50) NOT NULL DEFAULT '',
   `transplantDate` VARCHAR(50) NOT NULL DEFAULT '',
