@@ -11,7 +11,7 @@ export type StandardGrowthStageKey =
 
 export type GrowthStageKey = StandardGrowthStageKey | (string & {});
 
-export type TaskType = 
+export type StandardTaskType = 
   | 'watering'
   | 'fertilizing'
   | 'flowering_pollination'
@@ -20,6 +20,24 @@ export type TaskType =
   | 'harvest'
   | 'pruning'
   | 'vine_maintenance';
+
+export type TaskType = StandardTaskType | (string & {});
+
+export interface TaskTypeItem {
+  id: string;
+  key: string;
+  nameEn: string;
+  nameKm: string;
+  descriptionEn?: string;
+  descriptionKm?: string;
+  color: string; // 'blue' | 'emerald' | 'teal' | 'amber' | 'rose' | 'purple' | 'orange' | 'lime' | 'indigo' | 'cyan' | 'slate'
+  iconName: string;
+  badgeBg: string;
+  badgeText: string;
+  borderColor: string;
+  isSystem?: boolean;
+  createdAt?: string;
+}
 
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 

@@ -907,6 +907,7 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
   onSave,
 }) => {
   const { language } = useI18n();
+  const { taskTypes } = useFarm();
 
   const defaultInitialStage = presetToEdit?.stageKey || growthStages[0]?.key || 'seedling';
   const [stageKey, setStageKey] = useState<GrowthStageKey>(defaultInitialStage as GrowthStageKey);
@@ -961,21 +962,21 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden my-auto">
+    <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto animate-in fade-in">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-4xl sm:max-w-5xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center shadow-xs">
-              <Sliders className="w-4 h-4" />
+        <div className="p-6 sm:p-7 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-emerald-50/20 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shadow-md shadow-emerald-900/20 shrink-0">
+              <Sliders className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
                 {presetToEdit 
                   ? (language === 'km' ? 'កែប្រែគំរូកិច្ចការស្វ័យប្រវត្តិ' : 'Edit Task Preset')
                   : (language === 'km' ? '+ បន្ថែមគំរូកិច្ចការស្វ័យប្រវត្តិថ្មី' : '+ Add New Task Preset')}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 Target Botanical Growth Stage from Stage Settings & Farm Calendar parameters
               </p>
             </div>
@@ -983,31 +984,31 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 overflow-y-auto flex-1 space-y-5 text-sm">
           {error && (
-            <div className="p-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-xl font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-4 bg-rose-50 text-rose-700 border border-rose-200 rounded-2xl font-semibold flex items-center gap-3 text-sm">
+              <AlertCircle className="w-5 h-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Row 1: Target Growth Stage (Applied directly from Stage Settings Crop Management) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Row 1: Target Growth Stage & Day Offset */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Target Growth Stage / ដំណាក់កាលលូតលាស់ *
               </label>
               <select
                 value={stageKey}
                 onChange={(e) => setStageKey(e.target.value as GrowthStageKey)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
                 {growthStages.map((stg) => (
                   <option key={stg.key} value={stg.key}>
@@ -1016,8 +1017,8 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
                 ))}
               </select>
               {selectedStageObj && (
-                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
-                  <span className={`w-2 h-2 rounded-full inline-block ${selectedStageMeta.dotBg}`} />
+                <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                  <span className={`w-2.5 h-2.5 rounded-full inline-block ${selectedStageMeta.dotBg}`} />
                   <span>
                     Stage Duration: <strong>{selectedStageObj.defaultDays} {language === 'km' ? 'ថ្ងៃ' : 'Days'}</strong>
                     {selectedStageObj.ecTarget ? ` · Target EC: ${selectedStageObj.ecTarget}` : ''}
@@ -1027,19 +1028,19 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Day Offset from Stage Start (ថ្ងៃគម្លាត)
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <input
                   type="number"
                   min="0"
                   max="45"
                   value={dayOffset}
                   onChange={(e) => setDayOffset(parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-mono font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-mono font-semibold text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
                 />
-                <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                <span className="text-xs text-slate-500 whitespace-nowrap">
                   (0 = Day 1 of Stage)
                 </span>
               </div>
@@ -1048,30 +1049,30 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
 
           {/* Row 2: Title English with Dynamic Tokens */}
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-700">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-700 text-sm">
                 Task Title (English) *
               </label>
-              <div className="flex items-center gap-1 text-[10px]">
+              <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-slate-400">Add tag:</span>
                 <button
                   type="button"
                   onClick={() => insertPlaceholder('{varietyEn}', 'titleEn')}
-                  className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-mono font-semibold"
+                  className="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-mono font-semibold cursor-pointer"
                 >
                   +{'{varietyEn}'}
                 </button>
                 <button
                   type="button"
                   onClick={() => insertPlaceholder('{targetBrix}', 'titleEn')}
-                  className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 font-mono font-semibold"
+                  className="px-2 py-0.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-mono font-semibold cursor-pointer"
                 >
                   +{'{targetBrix}'}
                 </button>
                 <button
                   type="button"
                   onClick={() => insertPlaceholder('{idealEc}', 'titleEn')}
-                  className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 hover:bg-blue-100 font-mono font-semibold"
+                  className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-mono font-semibold cursor-pointer"
                 >
                   +{'{idealEc}'}
                 </button>
@@ -1082,13 +1083,13 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
               value={titleEn}
               onChange={(e) => setTitleEn(e.target.value)}
               placeholder="e.g. Nursery Seeding & Peat Moss Hydration for {varietyEn}"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Row 3: Title Khmer */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">
+            <label className="block font-bold text-slate-700 text-sm mb-1.5">
               Task Title (Khmer / ភាសាខ្មែរ)
             </label>
             <input
@@ -1096,34 +1097,44 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
               value={titleKm}
               onChange={(e) => setTitleKm(e.target.value)}
               placeholder="ឧទាហរណ៍៖ សាបគ្រាប់ក្នុងថាស និងផ្តល់សំណើមជីកំប៉ុសសម្រាប់ {varietyKm}"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 font-khmer outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 font-khmer text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Row 4: Activity Type, Scheduled Time, Priority */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Activity Type / ប្រភេទ
               </label>
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as TaskType)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
-                <option value="watering">Watering & Drip (ស្រោចទឹក)</option>
-                <option value="fertilizing">Fertilizing & Feeding (ដាក់ជី)</option>
-                <option value="vine_maintenance">Vine Maintenance (ថែទាំដើម)</option>
-                <option value="flowering_pollination">Flowering & Pollination (បង្កាត់)</option>
-                <option value="pest_check">Pest Inspection (ពិនិត្យសត្វល្អិត)</option>
-                <option value="harvest_prep">Harvest Prep (រៀបចំប្រមូលផល)</option>
-                <option value="harvest">Harvest & Sorting (ប្រមូលផល)</option>
-                <option value="pruning">Pruning (កាត់តម្រឹម)</option>
+                {taskTypes && taskTypes.length > 0 ? (
+                  taskTypes.map((tt) => (
+                    <option key={tt.key} value={tt.key}>
+                      {language === 'km' ? `${tt.nameKm} (${tt.nameEn})` : `${tt.nameEn} (${tt.nameKm})`}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="watering">Watering & Drip (ស្រោចទឹក)</option>
+                    <option value="fertilizing">Fertilizing & Feeding (ដាក់ជី)</option>
+                    <option value="vine_maintenance">Vine Maintenance (ថែទាំដើម)</option>
+                    <option value="flowering_pollination">Flowering & Pollination (បង្កាត់)</option>
+                    <option value="pest_check">Pest Inspection (ពិនិត្យសត្វល្អិត)</option>
+                    <option value="harvest_prep">Harvest Prep (រៀបចំប្រមូលផល)</option>
+                    <option value="harvest">Harvest & Sorting (ប្រមូលផល)</option>
+                    <option value="pruning">Pruning (កាត់តម្រឹម)</option>
+                  </>
+                )}
               </select>
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Scheduled Time (ម៉ោង)
               </label>
               <input
@@ -1131,18 +1142,18 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 placeholder="07:30"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-sm sm:text-base"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Priority / អាទិភាព
               </label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
                 <option value="high">High (ខ្ពស់)</option>
                 <option value="medium">Medium (មធ្យម)</option>
@@ -1153,7 +1164,7 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
 
           {/* Row 5: Dosage / Volume / Supplies */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1">
+            <label className="block font-bold text-slate-700 text-sm mb-1.5">
               Dosage, Supplies, or Tool (កម្រិត ឬសម្ភារៈ)
             </label>
             <input
@@ -1161,14 +1172,14 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
               value={dosageOrVolume}
               onChange={(e) => setDosageOrVolume(e.target.value)}
               placeholder="e.g. 200 L Water (pH 6.2) / Trellis Clips / Brix Refractometer"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
 
           {/* Row 6: SOP Notes (English & Khmer) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Agronomic Notes (English)
               </label>
               <textarea
@@ -1176,12 +1187,12 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
                 value={notesEn}
                 onChange={(e) => setNotesEn(e.target.value)}
                 placeholder="Technical SOP, guidelines, target pH/EC..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
+              <label className="block font-bold text-slate-700 text-sm mb-1.5">
                 Agronomic Notes (Khmer / ភាសាខ្មែរ)
               </label>
               <textarea
@@ -1189,27 +1200,27 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
                 value={notesKm}
                 onChange={(e) => setNotesKm(e.target.value)}
                 placeholder="ការណែនាំបច្ចេកទេស និងបទដ្ឋាន SOP..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-slate-800 font-khmer outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-white font-medium text-slate-800 font-khmer text-sm sm:text-base outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
 
           {/* Row 7: Order & Enabled Switch */}
-          <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-200/60">
-            <div className="flex items-center gap-2">
-              <label className="font-bold text-slate-700">Display Order (#):</label>
+          <div className="p-4 bg-slate-50 rounded-2xl flex items-center justify-between border border-slate-200/60">
+            <div className="flex items-center gap-3">
+              <label className="font-bold text-slate-700 text-sm">Display Order (#):</label>
               <input
                 type="number"
                 min="1"
                 max="99"
                 value={order}
                 onChange={(e) => setOrder(parseInt(e.target.value, 10) || 1)}
-                className="w-16 px-2 py-1 rounded-lg border border-slate-200 bg-white font-mono font-bold text-slate-800 text-center"
+                className="w-20 px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-mono font-bold text-slate-800 text-center text-sm"
               />
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="font-bold text-slate-700">Auto-Generate Active:</span>
+              <span className="font-bold text-slate-700 text-sm">Auto-Generate Active:</span>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -1217,23 +1228,23 @@ const AddEditPresetModal: React.FC<AddEditPresetModalProps> = ({
                   onChange={(e) => setEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                <div className="w-10 h-5.5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
             </div>
           </div>
 
           {/* Modal Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="pt-3 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+              className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-[#164e22] hover:bg-[#123e1b] rounded-xl shadow-xs transition-colors cursor-pointer"
+              className="px-6 py-2.5 text-sm sm:text-base font-bold text-white bg-[#164e22] hover:bg-[#123e1b] rounded-xl shadow-xs transition-colors cursor-pointer"
             >
               {presetToEdit ? 'Save Changes' : '+ Add Preset'}
             </button>
@@ -1262,22 +1273,25 @@ const ViewPresetDetailsModal: React.FC<ViewPresetDetailsModalProps> = ({
   onEdit,
 }) => {
   const { language } = useI18n();
+  const { taskTypes } = useFarm();
   const stageMeta = getStageConfig(preset.stageKey, growthStages);
-  const typeMeta = TASK_TYPE_METADATA[preset.type] || TASK_TYPE_METADATA.watering;
+  const customType = taskTypes.find((tt) => tt.key === preset.type);
+  const typeLabelEn = customType?.nameEn || TASK_TYPE_METADATA[preset.type]?.labelEn || preset.type;
+  const typeLabelKm = customType?.nameKm || TASK_TYPE_METADATA[preset.type]?.labelKm || preset.type;
 
   return (
     <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-xl overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-2xl sm:max-w-3xl overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white ${stageMeta.accentBar}`}>
-              <Eye className="w-4 h-4" />
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+          <div className="flex items-center gap-3">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white shadow-md ${stageMeta.accentBar}`}>
+              <Eye className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Task Preset Details</h3>
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${stageMeta.badgeBg}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${stageMeta.dotBg}`} />
+              <h3 className="text-lg sm:text-xl font-extrabold text-slate-900">Task Preset Details</h3>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mt-1 ${stageMeta.badgeBg}`}>
+                <span className={`w-2 h-2 rounded-full ${stageMeta.dotBg}`} />
                 {stageMeta.nameEn} ({stageMeta.nameKm})
               </span>
             </div>
@@ -1285,86 +1299,88 @@ const ViewPresetDetailsModal: React.FC<ViewPresetDetailsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4 text-xs">
+        <div className="p-6 sm:p-7 space-y-5 text-sm">
           <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
               Agronomic Task Title
             </div>
-            <h4 className="text-base font-bold text-slate-900">{preset.titleEn}</h4>
-            <p className="text-sm font-khmer text-emerald-800 font-semibold mt-0.5">{preset.titleKm}</p>
+            <h4 className="text-lg sm:text-xl font-extrabold text-slate-900">{preset.titleEn}</h4>
+            <p className="text-base font-khmer text-emerald-800 font-bold mt-1">{preset.titleKm}</p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 p-3 rounded-2xl border border-slate-200/70">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200/70">
             <div>
-              <span className="text-[10px] text-slate-400 block font-semibold">Activity Type</span>
-              <span className="font-bold text-slate-800">{typeMeta.labelEn}</span>
+              <span className="text-xs text-slate-400 block font-bold mb-0.5">Activity Type</span>
+              <span className="font-extrabold text-slate-800 text-sm sm:text-base">
+                {language === 'km' ? typeLabelKm : typeLabelEn}
+              </span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 block font-semibold">Scheduled Time</span>
-              <span className="font-mono font-bold text-slate-800">{preset.time}</span>
+              <span className="text-xs text-slate-400 block font-bold mb-0.5">Scheduled Time</span>
+              <span className="font-mono font-extrabold text-slate-800 text-sm sm:text-base">{preset.time}</span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 block font-semibold">Stage Offset</span>
-              <span className="font-mono font-bold text-slate-800">Day {preset.dayOffset}</span>
+              <span className="text-xs text-slate-400 block font-bold mb-0.5">Stage Offset</span>
+              <span className="font-mono font-extrabold text-slate-800 text-sm sm:text-base">Day {preset.dayOffset}</span>
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 block font-semibold">Priority</span>
-              <span className="font-bold text-slate-800 capitalize">{preset.priority}</span>
+              <span className="text-xs text-slate-400 block font-bold mb-0.5">Priority</span>
+              <span className="font-extrabold text-slate-800 text-sm sm:text-base capitalize">{preset.priority}</span>
             </div>
           </div>
 
           {preset.dosageOrVolume && (
             <div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                 Target Supplies & Dosage
               </div>
-              <div className="p-2.5 bg-emerald-50/60 border border-emerald-200 rounded-xl text-emerald-900 font-semibold">
+              <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-2xl text-emerald-950 font-bold text-sm sm:text-base">
                 {preset.dosageOrVolume}
               </div>
             </div>
           )}
 
           <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
               Agronomic Notes & SOP
             </div>
-            <div className="space-y-2 text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/60">
+            <div className="space-y-2.5 text-slate-700 bg-slate-50 p-4 rounded-2xl border border-slate-200/60 text-sm sm:text-base">
               {preset.notesEn && <p className="leading-relaxed">{preset.notesEn}</p>}
-              {preset.notesKm && <p className="font-khmer text-emerald-900 leading-relaxed">{preset.notesKm}</p>}
+              {preset.notesKm && <p className="font-khmer text-emerald-900 leading-relaxed font-semibold">{preset.notesKm}</p>}
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-amber-900 flex items-start gap-2 text-[11px]">
-            <Sparkles className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl text-amber-900 flex items-start gap-3 text-xs sm:text-sm">
+            <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold">Template Placeholders:</span>
-              <p className="mt-0.5 text-amber-800">
-                Variables like <code>{'{varietyEn}'}</code>, <code>{'{targetBrix}'}</code>, and <code>{'{idealEc}'}</code> are automatically replaced with values from the crop variety when generating tasks for each batch.
+              <p className="mt-1 text-amber-800 leading-relaxed">
+                Variables like <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">{'{varietyEn}'}</code>, <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">{'{targetBrix}'}</code>, and <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold">{'{idealEc}'}</code> are automatically replaced with values from the crop variety when generating tasks for each batch.
               </p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <div className="p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+            className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 rounded-xl cursor-pointer"
           >
             Close
           </button>
           <button
             type="button"
             onClick={onEdit}
-            className="px-4 py-2 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl shadow-xs"
+            className="px-6 py-2.5 text-sm sm:text-base font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-2xl shadow-xs cursor-pointer"
           >
             Edit This Preset
           </button>
@@ -1465,18 +1481,18 @@ const AssignTasksDialog: React.FC<AssignTasksDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-60 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-lg overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 w-full max-w-2xl sm:max-w-3xl overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shadow-md">
-              <CalendarPlus className="w-5 h-5" />
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 via-teal-50/20 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-700 text-white flex items-center justify-center shadow-md shrink-0">
+              <CalendarPlus className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-xl font-extrabold text-slate-900">
                 {language === 'km' ? 'បង្កើតកិច្ចការចូលប្រតិទិន' : 'Assign to Farm Calendar'}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 Auto-generate active agronomic tasks for crop batches
               </p>
             </div>
@@ -1484,50 +1500,50 @@ const AssignTasksDialog: React.FC<AssignTasksDialogProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 space-y-4 text-xs">
+        <div className="p-6 sm:p-7 space-y-5 text-sm">
           {/* Info Badge */}
-          <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between">
+          <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-center justify-between">
             <div>
-              <span className="font-bold text-emerald-950 block">
+              <span className="font-bold text-emerald-950 block text-sm sm:text-base">
                 {enabledPresets.length} Active Presets Ready
               </span>
-              <span className="text-[11px] text-emerald-700">
+              <span className="text-xs text-emerald-700">
                 Seedling, Transplanting, Trellising, Pollination, Netting, Brix Test
               </span>
             </div>
-            <span className="px-2.5 py-1 bg-emerald-700 text-white font-bold rounded-xl text-xs">
+            <span className="px-3.5 py-1.5 bg-emerald-700 text-white font-extrabold rounded-xl text-xs sm:text-sm">
               {enabledPresets.length} Tasks / Batch
             </span>
           </div>
 
           {/* Select Batches */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="font-bold text-slate-700">
+            <div className="flex items-center justify-between mb-2.5">
+              <label className="font-bold text-slate-700 text-sm">
                 Select Active Crop Batches ({selectedCycleIds.length} / {activeCycles.length}):
               </label>
               <button
                 type="button"
                 onClick={handleSelectAll}
-                className="text-emerald-700 hover:text-emerald-900 font-bold cursor-pointer"
+                className="text-emerald-700 hover:text-emerald-900 font-bold text-xs sm:text-sm cursor-pointer"
               >
                 {selectedCycleIds.length === activeCycles.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
             {activeCycles.length === 0 ? (
-              <div className="p-6 text-center bg-slate-50 rounded-xl text-slate-400">
+              <div className="p-8 text-center bg-slate-50 rounded-2xl text-slate-400 font-medium">
                 No active or planned crop batches found.
               </div>
             ) : (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                 {activeCycles.map((cycle) => {
                   const plot = plots.find((p) => p.id === cycle.plotId);
                   const isChecked = selectedCycleIds.includes(cycle.id);
@@ -1536,27 +1552,27 @@ const AssignTasksDialog: React.FC<AssignTasksDialogProps> = ({
                     <div
                       key={cycle.id}
                       onClick={() => toggleSelectCycle(cycle.id)}
-                      className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                         isChecked
-                          ? 'bg-emerald-50/50 border-emerald-400 shadow-2xs'
+                          ? 'bg-emerald-50/60 border-emerald-400 shadow-2xs'
                           : 'bg-white border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ${
                           isChecked ? 'bg-emerald-700 border-emerald-700 text-white' : 'border-slate-300'
                         }`}>
-                          {isChecked && <Check className="w-3 h-3" />}
+                          {isChecked && <Check className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{cycle.name}</div>
-                          <div className="text-[10px] text-slate-500">
+                          <div className="font-extrabold text-slate-900 text-sm sm:text-base">{cycle.name}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">
                             {cycle.variety} · {plot?.name || cycle.plotId} · Sowing: {cycle.sowingDate}
                           </div>
                         </div>
                       </div>
 
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
                         {cycle.status}
                       </span>
                     </div>
@@ -1568,11 +1584,11 @@ const AssignTasksDialog: React.FC<AssignTasksDialogProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+        <div className="p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
+            className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
           >
             Cancel
           </button>
@@ -1580,7 +1596,7 @@ const AssignTasksDialog: React.FC<AssignTasksDialogProps> = ({
             type="button"
             disabled={selectedCycleIds.length === 0}
             onClick={handleGenerate}
-            className={`px-5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            className={`px-6 py-2.5 text-sm sm:text-base font-bold rounded-2xl transition-all cursor-pointer ${
               selectedCycleIds.length > 0
                 ? 'bg-[#164e22] hover:bg-[#123e1b] text-white shadow-xs'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'

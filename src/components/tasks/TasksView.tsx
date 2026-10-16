@@ -26,6 +26,7 @@ import {
   Bug,
   ClipboardCheck,
   Search,
+  Tag,
   X
 } from 'lucide-react';
 import { useI18n } from '../../locales/i18nContext';
@@ -33,6 +34,8 @@ import { useFarm } from '../../context/FarmContext';
 import { FarmTask, TaskStatus, TaskType, AgronomicTaskPreset } from '../../types/melon';
 import { TaskPresetSettingsModal, getStageConfig } from './TaskPresetSettingsModal';
 import { TASK_TYPE_METADATA } from '../../data/agronomicTaskPresets';
+import { TaskTypesManager } from './TaskTypesManager';
+import { getTaskTypeIcon } from '../../data/taskTypePresets';
 
 interface TasksViewProps {
   onOpenTaskModal: (task?: FarmTask) => void;
@@ -61,11 +64,12 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
     deleteTaskPreset, 
     addTaskPreset,
     resetTaskPresets,
+    taskTypes,
     growthStages 
   } = useFarm();
 
-  // Primary Sub-Tab: 'calendar_tasks' vs 'agronomic_presets'
-  const [activeSection, setActiveSection] = useState<'calendar_tasks' | 'agronomic_presets'>('calendar_tasks');
+  // Primary Sub-Tab: 'calendar_tasks' vs 'agronomic_presets' vs 'task_types'
+  const [activeSection, setActiveSection] = useState<'calendar_tasks' | 'agronomic_presets' | 'task_types'>('calendar_tasks');
 
   // View Layout Switcher: 'catalog' (cards grid) vs 'list' (rows/table), default is 'list'
   const [viewLayout, setViewLayout] = useState<'catalog' | 'list'>('list');
@@ -120,68 +124,88 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
       {/* ------------------------------------------------------------------ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-slate-900">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
               Farm Tasks
             </h1>
             <span className="text-slate-300">•</span>
-            <span className="font-khmer font-bold text-emerald-800 text-lg">
+            <span className="font-khmer font-bold text-emerald-800 text-xl sm:text-2xl">
               កិច្ចការចំការ & កាលវិភាគ
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          <p className="text-sm sm:text-base text-slate-500 mt-1">
             {language === 'km' 
               ? 'បញ្ជីការងារប្រចាំថ្ងៃ កិច្ចការដែលត្រូវធ្វើ និងគំរូកិច្ចការស្វ័យប្រវត្តិតាមដំណាក់កាលលូតលាស់' 
               : 'Daily task dispatch, technicians log, and automated melon agronomic tasks across botanical growth stages'}
           </p>
         </div>
 
-        {/* Action Buttons: "+ Add Task" followed immediately by "Task Preset Settings" */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Action Buttons: "+ Add Task", "Task Preset Settings", "Task Types" */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Button 1: "+ Add Task" */}
           <button
             type="button"
             onClick={() => onOpenTaskModal()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#164e22] hover:bg-[#123e1b] text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4.5 py-2.5 bg-[#164e22] hover:bg-[#123e1b] text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4.5 h-4.5" />
             <span>{t('addTask')}</span>
           </button>
 
-          {/* Button 2: "Task Preset Settings" (Placed after button "+ Add Task") */}
+          {/* Button 2: "Task Preset Settings" */}
           <button
             type="button"
             onClick={() => setIsPresetSettingsOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100/90 text-emerald-950 border border-emerald-300 rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer hover:shadow-sm"
+            className="flex items-center gap-2 px-4.5 py-2.5 bg-emerald-50 hover:bg-emerald-100/90 text-emerald-950 border border-emerald-300 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer hover:shadow-sm"
             title="Configure Auto-generate 6 key melon agronomic tasks in farm calendar based on Growth Stages"
           >
-            <Sliders className="w-4 h-4 text-emerald-700 shrink-0" />
+            <Sliders className="w-4.5 h-4.5 text-emerald-700 shrink-0" />
             <span>{language === 'km' ? 'ការកំណត់គំរូកិច្ចការ' : 'Task Preset Settings'}</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-700 text-white leading-tight">
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-700 text-white leading-tight">
               {enabledPresetsCount}
+            </span>
+          </button>
+
+          {/* Button 3: "Task Types" Shortcut */}
+          <button
+            type="button"
+            onClick={() => setActiveSection('task_types')}
+            className={`flex items-center gap-2 px-4.5 py-2.5 border rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer hover:shadow-sm ${
+              activeSection === 'task_types'
+                ? 'bg-teal-700 text-white border-teal-800'
+                : 'bg-teal-50 hover:bg-teal-100/90 text-teal-950 border-teal-300'
+            }`}
+            title="Manage custom and system Task Types (Add, Edit, Delete)"
+          >
+            <Tag className={`w-4.5 h-4.5 shrink-0 ${activeSection === 'task_types' ? 'text-teal-200' : 'text-teal-700'}`} />
+            <span>{language === 'km' ? 'ប្រភេទកិច្ចការ' : 'Task Types'}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold leading-tight ${
+              activeSection === 'task_types' ? 'bg-teal-900 text-teal-100' : 'bg-teal-700 text-white'
+            }`}>
+              {taskTypes.length}
             </span>
           </button>
         </div>
       </div>
 
       {/* ------------------------------------------------------------------ */}
-      {/* 2. SUB-SECTION NAV (CALENDAR TASKS vs AGRONOMIC TASK PRESETS)       */}
+      {/* 2. SUB-SECTION NAV (CALENDAR TASKS vs AGRONOMIC TASK PRESETS vs TASK TYPES) */}
       {/* ------------------------------------------------------------------ */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-xs border border-slate-200/80">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80">
         {/* Main Tab Navigation */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold shrink-0">
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl text-xs sm:text-sm font-bold shrink-0 flex-wrap sm:flex-nowrap">
           <button
             type="button"
             onClick={() => setActiveSection('calendar_tasks')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
               activeSection === 'calendar_tasks'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5 text-emerald-700" />
+            <Calendar className="w-4 h-4 text-emerald-700" />
             <span>{language === 'km' ? 'កិច្ចការក្នុងប្រតិទិន' : 'Calendar Tasks'}</span>
-            <span className="px-1.5 py-0.2 bg-slate-200 rounded-full text-[10px] font-mono text-slate-700">
+            <span className="px-2 py-0.5 bg-slate-200 rounded-full text-xs font-mono text-slate-700">
               {filteredTasks.length}
             </span>
           </button>
@@ -189,16 +213,33 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
           <button
             type="button"
             onClick={() => setActiveSection('agronomic_presets')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
               activeSection === 'agronomic_presets'
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <Sparkles className="w-4 h-4 text-emerald-600" />
             <span>{language === 'km' ? 'គំរូកិច្ចការ ៦ ដំណាក់កាល' : '6 Key Agronomic Presets'}</span>
-            <span className="px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-mono font-bold">
+            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-mono font-bold">
               {taskPresets.length}
+            </span>
+          </button>
+
+          {/* Feature: Task Type right after button "6 Key Agronomic Presets" */}
+          <button
+            type="button"
+            onClick={() => setActiveSection('task_types')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all cursor-pointer ${
+              activeSection === 'task_types'
+                ? 'bg-white text-teal-950 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Tag className="w-4 h-4 text-teal-600" />
+            <span>{language === 'km' ? 'ប្រភេទកិច្ចការ' : 'Task Types'}</span>
+            <span className="px-2 py-0.5 bg-teal-100 text-teal-800 rounded-full text-xs font-mono font-bold">
+              {taskTypes.length}
             </span>
           </button>
         </div>
@@ -267,14 +308,14 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
         /* ================================================================ */
         <div className="space-y-4">
           {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl shadow-xs border border-slate-200/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl shadow-xs border border-slate-200/80">
             {/* Status Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold overflow-x-auto">
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs sm:text-sm font-semibold overflow-x-auto">
               {(['all', 'today', 'pending', 'completed'] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveFilter(tab)}
-                  className={`px-3 py-1.5 rounded-lg capitalize whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg capitalize whitespace-nowrap transition-all cursor-pointer ${
                     activeFilter === tab ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -288,17 +329,16 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                className="px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 bg-white text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 font-medium cursor-pointer"
               >
-                <option value="all">All Activities (គ្រប់ប្រភេទ)</option>
-                <option value="watering">Watering & Drip (ស្រោចទឹក)</option>
-                <option value="fertilizing">Fertilizing (ដាក់ជី)</option>
-                <option value="vine_maintenance">Vine Maintenance (ថែទាំដើម)</option>
-                <option value="flowering_pollination">Flowering & Pollination (បង្កាត់)</option>
-                <option value="pest_check">Pest Inspection (ពិនិត្យសត្វល្អិត)</option>
-                <option value="harvest_prep">Harvest Prep (រៀបចំប្រមូលផល)</option>
-                <option value="harvest">Harvest & Sorting (ប្រមូលផល)</option>
-                <option value="pruning">Pruning (កាត់តម្រឹម)</option>
+                <option value="all">
+                  {language === 'km' ? 'គ្រប់ប្រភេទសកម្មភាព (All Activities)' : 'All Activities'}
+                </option>
+                {taskTypes.map((tt) => (
+                  <option key={tt.key} value={tt.key}>
+                    {language === 'km' ? `${tt.nameKm} (${tt.nameEn})` : `${tt.nameEn} (${tt.nameKm})`}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -336,15 +376,21 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
               {displayedTasks.map((task) => {
                 const plot = plots.find((p) => p.id === task.plotId);
                 const isCompleted = task.status === 'completed';
-                const typeMeta = TASK_TYPE_METADATA[task.type] || TASK_TYPE_METADATA.watering;
-                const typeIcon = TASK_TYPE_ICONS[task.type] || <Droplets className="w-3.5 h-3.5" />;
+                const customType = taskTypes.find((tt) => tt.key === task.type);
+                const typeLabelEn = customType?.nameEn || TASK_TYPE_METADATA[task.type]?.labelEn || task.type;
+                const typeLabelKm = customType?.nameKm || TASK_TYPE_METADATA[task.type]?.labelKm || task.type;
+                const typeBadgeBg = customType?.badgeBg || TASK_TYPE_METADATA[task.type]?.badgeBg || 'bg-slate-100 text-slate-800';
+                const typeBorderColor = customType?.borderColor || TASK_TYPE_METADATA[task.type]?.borderColor || 'border-slate-300';
+                const typeIcon = customType 
+                  ? getTaskTypeIcon(customType.iconName, 'w-4 h-4') 
+                  : (TASK_TYPE_ICONS[task.type] || <Droplets className="w-4 h-4" />);
                 const stageMeta = getStageConfig(task.stageKey, growthStages);
 
                 return (
                   <div
                     key={task.id}
                     onClick={() => onOpenTaskModal(task)}
-                    className={`bg-white rounded-2xl border transition-all cursor-pointer p-4.5 flex flex-col justify-between hover:shadow-md relative overflow-hidden ${
+                    className={`bg-white rounded-2xl border transition-all cursor-pointer p-5 flex flex-col justify-between hover:shadow-md relative overflow-hidden ${
                       isCompleted
                         ? 'border-slate-200/60 bg-slate-50/50 opacity-75'
                         : 'border-slate-200 hover:border-emerald-400 shadow-2xs'
@@ -352,18 +398,18 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
                   >
                     {/* Top status bar */}
                     {stageMeta && (
-                      <div className={`absolute top-0 left-0 right-0 h-1 ${stageMeta.accentBar}`} />
+                      <div className={`absolute top-0 left-0 right-0 h-1.5 ${stageMeta.accentBar}`} />
                     )}
 
                     <div>
                       {/* Top Badges */}
-                      <div className="flex items-center justify-between gap-2 mb-2.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${typeMeta.badgeBg} border ${typeMeta.borderColor}`}>
+                      <div className="flex items-center justify-between gap-2 mb-3">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold ${typeBadgeBg} border ${typeBorderColor}`}>
                           {typeIcon}
-                          <span>{language === 'km' ? typeMeta.labelKm : typeMeta.labelEn}</span>
+                          <span>{language === 'km' ? typeLabelKm : typeLabelEn}</span>
                         </span>
 
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full capitalize ${
                           task.status === 'completed'
                             ? 'bg-emerald-100 text-emerald-800'
                             : task.status === 'in_progress'
@@ -375,25 +421,25 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
                       </div>
 
                       {/* Title & Checkbox */}
-                      <div className="flex items-start gap-2.5 mb-3">
+                      <div className="flex items-start gap-3 mb-3.5">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             updateTaskStatus(task.id, isCompleted ? 'pending' : 'completed');
                           }}
-                          className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                          className={`mt-0.5 w-6 h-6 rounded-lg border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                             isCompleted ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 hover:border-emerald-600 bg-white'
                           }`}
                         >
-                          {isCompleted && <Check className="w-3.5 h-3.5" />}
+                          {isCompleted && <Check className="w-4 h-4" />}
                         </button>
 
                         <div className="flex-1">
-                          <h4 className={`text-sm font-bold leading-snug line-clamp-2 ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                          <h4 className={`text-base sm:text-lg font-bold leading-snug line-clamp-2 ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900'}`}>
                             {task.titleEn}
                           </h4>
-                          <p className="text-xs font-khmer text-emerald-800 font-medium mt-0.5 line-clamp-1">
+                          <p className="text-sm font-khmer text-emerald-800 font-semibold mt-0.5 line-clamp-1">
                             {task.titleKm}
                           </p>
                         </div>
@@ -401,27 +447,27 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
 
                       {/* Dosage pill */}
                       {task.dosageOrVolume && (
-                        <div className="mb-3 text-xs text-emerald-800 bg-emerald-50/70 p-2 rounded-xl border border-emerald-200/60 flex items-center gap-2">
-                          <Scale className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <div className="mb-3.5 text-xs sm:text-sm text-emerald-900 bg-emerald-50/80 p-2.5 rounded-xl border border-emerald-200/70 flex items-center gap-2">
+                          <Scale className="w-4 h-4 text-emerald-600 shrink-0" />
                           <span className="font-semibold truncate">{task.dosageOrVolume}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Footer Info */}
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 gap-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="flex items-center gap-1 font-mono">
-                          <Calendar className="w-3 h-3 text-slate-400" />
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 gap-2">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="flex items-center gap-1 font-mono font-medium">
+                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
                           {task.date} · {task.time || '07:00'}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-400" />
+                        <span className="flex items-center gap-1 font-medium">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
                           {plot?.name || 'Field'}
                         </span>
                       </div>
 
-                      <span className="text-emerald-700 font-bold hover:underline shrink-0">
+                      <span className="text-xs sm:text-sm text-emerald-700 font-bold hover:underline shrink-0">
                         Edit →
                       </span>
                     </div>
@@ -435,37 +481,57 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
               {displayedTasks.map((task) => {
                 const plot = plots.find((p) => p.id === task.plotId);
                 const isCompleted = task.status === 'completed';
+                const customType = taskTypes.find((tt) => tt.key === task.type);
+                const typeLabelEn = customType?.nameEn || TASK_TYPE_METADATA[task.type]?.labelEn || task.type;
+                const typeLabelKm = customType?.nameKm || TASK_TYPE_METADATA[task.type]?.labelKm || task.type;
+                const typeBadgeBg = customType?.badgeBg || TASK_TYPE_METADATA[task.type]?.badgeBg || 'bg-slate-100 text-slate-800';
+                const typeBorderColor = customType?.borderColor || TASK_TYPE_METADATA[task.type]?.borderColor || 'border-slate-300';
+                const typeIcon = customType 
+                  ? getTaskTypeIcon(customType.iconName, 'w-3.5 h-3.5') 
+                  : (TASK_TYPE_ICONS[task.type] || <Droplets className="w-3.5 h-3.5" />);
 
                 return (
                   <div
                     key={task.id}
                     onClick={() => onOpenTaskModal(task)}
-                    className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                    className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 ${
                       isCompleted 
                         ? 'bg-slate-50/50 border-slate-200/60 opacity-75' 
                         : 'bg-white border-slate-200 hover:border-emerald-300 shadow-2xs hover:shadow-xs'
                     }`}
                   >
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3.5 flex-1">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           updateTaskStatus(task.id, isCompleted ? 'pending' : 'completed');
                         }}
-                        className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
+                        className={`mt-1 w-6 h-6 rounded-lg border flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                           isCompleted ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 hover:border-emerald-600 bg-white'
                         }`}
                       >
-                        {isCompleted && <Check className="w-3.5 h-3.5" />}
+                        {isCompleted && <Check className="w-4 h-4" />}
                       </button>
 
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className={`text-xs sm:text-sm font-bold ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900'}`}>
-                            {language === 'km' ? task.titleKm : task.titleEn}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold ${typeBadgeBg} border ${typeBorderColor}`}>
+                            {typeIcon}
+                            <span>{language === 'km' ? typeLabelKm : typeLabelEn}</span>
+                          </span>
+
+                          <h4 className={`text-sm sm:text-base font-bold ${isCompleted ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                            {task.titleEn}
                           </h4>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize ${
+
+                          {task.titleKm && (
+                            <span className="text-xs sm:text-sm font-khmer text-emerald-800 font-semibold">
+                              ({task.titleKm})
+                            </span>
+                          )}
+
+                          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${
                             task.status === 'completed'
                               ? 'bg-emerald-100 text-emerald-800'
                               : task.status === 'in_progress'
@@ -476,21 +542,23 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
-                          <span className="flex items-center gap-1 font-mono text-[11px]">
-                            <Calendar className="w-3 h-3 text-slate-400" />
+                        <div className="flex items-center gap-3.5 mt-2 text-xs sm:text-sm text-slate-500 flex-wrap">
+                          <span className="flex items-center gap-1 font-mono font-medium">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
                             {task.date} · {task.time || '07:00'}
                           </span>
-                          <span className="flex items-center gap-1 text-[11px]">
-                            <MapPin className="w-3 h-3 text-slate-400" />
-                            {plot?.name}
+                          <span className="flex items-center gap-1 font-medium">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                            {plot?.name || 'Field'}
                           </span>
-                          <span className="flex items-center gap-1 text-[11px]">
-                            <User className="w-3 h-3 text-slate-400" />
-                            {task.assignedWorker}
-                          </span>
+                          {task.assignedWorker && (
+                            <span className="flex items-center gap-1 font-medium">
+                              <User className="w-3.5 h-3.5 text-slate-400" />
+                              {task.assignedWorker}
+                            </span>
+                          )}
                           {task.dosageOrVolume && (
-                            <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/50">
+                            <span className="text-xs text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/50">
                               {task.dosageOrVolume}
                             </span>
                           )}
@@ -498,8 +566,8 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end md:self-center">
-                      <span className="text-xs text-slate-400 hover:text-emerald-700 font-semibold">
+                    <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                      <span className="text-xs sm:text-sm text-slate-400 hover:text-emerald-700 font-bold">
                         Edit Details →
                       </span>
                     </div>
@@ -509,7 +577,7 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
             </div>
           )}
         </div>
-      ) : (
+      ) : activeSection === 'agronomic_presets' ? (
         /* ================================================================ */
         /* VIEW 2: 6 KEY AGRONOMIC TASK PRESETS (CATALOG & LIST VIEWS)      */
         /* ================================================================ */
@@ -741,6 +809,11 @@ export const TasksView: React.FC<TasksViewProps> = ({ onOpenTaskModal }) => {
             </div>
           )}
         </div>
+      ) : (
+        /* ================================================================ */
+        /* VIEW 3: TASK TYPES MANAGER (ADD / EDIT / DELETE TASK TYPES)      */
+        /* ================================================================ */
+        <TaskTypesManager />
       )}
 
       {/* ------------------------------------------------------------------ */}

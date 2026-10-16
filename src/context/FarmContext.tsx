@@ -19,8 +19,10 @@ import {
   FinancialAccount,
   AccountTransaction,
   FacilityShape,
-  FacilityType
+  FacilityType,
+  TaskTypeItem
 } from '../types/melon';
+import { DEFAULT_TASK_TYPES, getColorStyle } from '../data/taskTypePresets';
 import { 
   INITIAL_FARMS,
   INITIAL_PLOTS, 
@@ -103,6 +105,7 @@ interface FarmContextType {
   tasks: FarmTask[];
   filteredTasks: FarmTask[];
   taskPresets: AgronomicTaskPreset[];
+  taskTypes: TaskTypeItem[];
   monitoringRecords: MonitoringRecord[];
   harvestRecords: HarvestRecord[];
   recommendations: AIRecommendation[];
@@ -168,6 +171,11 @@ interface FarmContextType {
   deleteTaskPreset: (id: string) => void;
   resetTaskPresets: () => void;
   generateTasksForActiveCycles: () => { generatedCount: number; cyclesCount: number };
+
+  addTaskType: (item: Omit<TaskTypeItem, 'id'>) => void;
+  updateTaskType: (item: TaskTypeItem) => void;
+  deleteTaskType: (idOrKey: string) => void;
+  resetTaskTypes: () => void;
 
   addMonitoringRecord: (record: Omit<MonitoringRecord, 'id'>) => void;
   updateMonitoringRecord: (record: MonitoringRecord) => void;
@@ -349,6 +357,17 @@ export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch {}
     }
     return DEFAULT_AGRONOMIC_TASK_PRESETS;
+  });
+
+  const [taskTypes, setTaskTypes] = useState<TaskTypeItem[]>(() => {
+    const saved = localStorage.getItem('melonpro_task_types');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return DEFAULT_TASK_TYPES;
   });
 
   const [monitoringRecords, setMonitoringRecords] = useState<MonitoringRecord[]>(() => {
@@ -969,6 +988,58 @@ export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { generatedCount, cyclesCount: activeCycles.length };
   };
 
+  // --- Task Types Actions ---
+  const addTaskType = (typeData: Omit<TaskTypeItem, 'id'>) => {
+    const rawKey = typeData.key || typeData.nameEn.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const key = rawKey.trim();
+    const style = getColorStyle(typeData.color || 'blue');
+    const newType: TaskTypeItem = {
+      ...typeData,
+      id: `tasktype-${Date.now()}`,
+      key,
+      color: typeData.color || 'blue',
+      iconName: typeData.iconName || 'Tag',
+      badgeBg: style.badgeBg,
+      badgeText: style.badgeText,
+      borderColor: style.borderColor,
+      isSystem: false,
+      createdAt: new Date().toISOString(),
+    };
+    setTaskTypes((prev) => {
+      const updated = [...prev, newType];
+      localStorage.setItem('melonpro_task_types', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const updateTaskType = (updated: TaskTypeItem) => {
+    const style = getColorStyle(updated.color || 'blue');
+    const finalized: TaskTypeItem = {
+      ...updated,
+      badgeBg: style.badgeBg,
+      badgeText: style.badgeText,
+      borderColor: style.borderColor,
+    };
+    setTaskTypes((prev) => {
+      const next = prev.map((t) => (t.id === updated.id || t.key === updated.key ? finalized : t));
+      localStorage.setItem('melonpro_task_types', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteTaskType = (idOrKey: string) => {
+    setTaskTypes((prev) => {
+      const next = prev.filter((t) => t.id !== idOrKey && t.key !== idOrKey);
+      localStorage.setItem('melonpro_task_types', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const resetTaskTypes = () => {
+    setTaskTypes(DEFAULT_TASK_TYPES);
+    localStorage.setItem('melonpro_task_types', JSON.stringify(DEFAULT_TASK_TYPES));
+  };
+
   const addFarm = (newFarmData: Omit<Farm, 'id'>) => {
     const id = `farm-${Date.now()}`;
     const newFarm: Farm = {
@@ -1469,6 +1540,7 @@ export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tasks,
         filteredTasks,
         taskPresets,
+        taskTypes,
         monitoringRecords,
         harvestRecords,
         recommendations,
@@ -1516,6 +1588,10 @@ export const FarmProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteTaskPreset,
         resetTaskPresets,
         generateTasksForActiveCycles,
+        addTaskType,
+        updateTaskType,
+        deleteTaskType,
+        resetTaskTypes,
         updatePlot,
         deletePlot,
         toggleIrrigation,
